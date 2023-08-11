@@ -1,0 +1,8 @@
+venv
+.idea
+*.pyc
+tables.json
+connection.json
+.env
+__pycache__
+
