@@ -3,10 +3,14 @@ import json
 import requests
 import asyncio
 
+from dotenv import dotenv_values
+
+config_env = dotenv_values(".env")
+
 app = FastAPI()
 
 
-def call_api_table(token: str, url: str):
+async def call_api_table_async(token: str, url: str, name: str):
     with open("tables.json", "r") as file:
         list_table = json.load(file)
         for table in list_table:
@@ -14,12 +18,21 @@ def call_api_table(token: str, url: str):
             urls = f"{url}/items/{table}"
             print(urls)
 
-            payload = {}
-            headers = {
-                'Authorization': f'Bearer {token}',
-            }
+            response = requests.request("POST", urls, headers={'Authorization': f'Bearer {token}'}, data={})
 
-            response = requests.request("POST", urls, headers=headers, data=payload)
+            res_data = {
+                "hcode": name,
+                "table": table,
+                "method": "replace",
+                "data": response.json()
+            }
+            # print get data
+            # print(res_data)
+
+            # forwarding data to api receiver
+            fw_payload = json.dumps(res_data)
+            fw_url = config_env['SEND_CLEFT_CMU']
+            response = requests.request("POST", fw_url, headers={'Content-Type': 'application/json'}, data=fw_payload)
 
             print(response.text)
 
@@ -27,14 +40,21 @@ def call_api_table(token: str, url: str):
 @app.post("/hook")
 async def send_hook():
     # import json file
+    items = {}
+    i = 0
     with open("connection.json", "r") as file:
         json_data = json.load(file)
 
     for item in json_data:
+        i += 1
+        urli = "url" + str(i)
         url = item['url'] + f":{item['port']}"
         urls = item['url'] + f":{item['port']}/token"
         username = item['username']
         password = item['password']
+        name = item['name']
+        print(username)
+        print(password)
         payload = f'username={username}&password={password}'
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -42,13 +62,16 @@ async def send_hook():
         try:
             response = requests.post(urls, headers=headers, data=payload)
             response_json = response.json()
-            call_api_table(response_json["access_token"], url)
+            # call_api_table(response_json["access_token"], url)
+            asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
         except requests.RequestException as e:
-            response_json = f"Error: {e}"
+            error = f"Error: {e}"
+            print(error)
+            return error
 
-        print(response_json)
+        items[urli] = url
 
-    return json_data
+    return {"urls": items, "status": "success", "message": "an api is running in background"}
 
 
 @app.get("/")
