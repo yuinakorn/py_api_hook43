@@ -5,4 +5,4 @@ tables.json
 connection.json
 .env
 __pycache__
-
+*.json

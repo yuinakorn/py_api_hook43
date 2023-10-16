@@ -11,30 +11,35 @@ app = FastAPI()
 
 
 async def call_api_table_async(token: str, url: str, name: str):
-    with open("tables.json", "r") as file:
-        list_table = json.load(file)
-        for table in list_table:
-            print(table)
-            urls = f"{url}/items/{table}"
-            print(urls)
+    try:
+        with open("tables.json", "r") as file:
+            list_table = json.load(file)
+            for table in list_table:
+                print(table)
+                urls = f"{url}/items/{table}"
+                print(urls)
 
-            response = requests.request("POST", urls, headers={'Authorization': f'Bearer {token}'}, data={})
+                response = requests.request("POST", urls, headers={'Authorization': f'Bearer {token}'}, data={})
 
-            res_data = {
-                "hcode": name,
-                "table": table,
-                "method": "replace",
-                "data": response.json()
-            }
-            # print get data
-            # print(res_data)
+                res_data = {
+                    "hcode": name,
+                    "table": table,
+                    "method": "replace",
+                    "data": response.json()
+                }
+                # print get data
+                # print(res_data)
 
-            # forwarding data to api receiver
-            fw_payload = json.dumps(res_data)
-            fw_url = config_env['SEND_CLEFT_CMU']
-            response = requests.request("POST", fw_url, headers={'Content-Type': 'application/json'}, data=fw_payload)
+                # forwarding data to api receiver
+                fw_payload = json.dumps(res_data)
+                fw_url = config_env['SEND_CLEFT_CMU']
+                response = requests.request("POST", fw_url, headers={'Content-Type': 'application/json'}, data=fw_payload)
 
-            print(response.text)
+                print(response.text)
+    except requests.RequestException as e:
+        error = f"Error: {e}"
+        print(error)
+        return error
 
 
 @app.post("/hook")
