@@ -1,8 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import FastAPI
 import json
 import requests
 import asyncio
-
+import pytz
 from dotenv import dotenv_values
 
 config_env = dotenv_values(".env")
@@ -11,6 +13,13 @@ app = FastAPI()
 
 
 async def call_api_table_async(token: str, url: str, name: str):
+    # print time now at tz Asia/Bangkok
+
+    time = datetime.now()
+    tz = pytz.timezone('Asia/Bangkok')
+    thai_time = time.astimezone(tz)
+    print("Start at: ", thai_time.strftime('%Y-%m-%d %H:%M:%S'))
+
     try:
         with open("tables.json", "r") as file:
             list_table = json.load(file)
@@ -41,6 +50,8 @@ async def call_api_table_async(token: str, url: str, name: str):
         print(error)
         return error
 
+    print("End at: " + thai_time.strftime('%Y-%m-%d %H:%M:%S'))
+
 
 @app.post("/hook")
 async def send_hook():
@@ -58,8 +69,6 @@ async def send_hook():
         username = item['username']
         password = item['password']
         name = item['name']
-        print(username)
-        print(password)
         payload = f'username={username}&password={password}'
         headers = {
             'Content-Type': 'application/x-www-form-urlencoded'
@@ -70,7 +79,7 @@ async def send_hook():
             # call_api_table(response_json["access_token"], url)
             asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
         except requests.RequestException as e:
-            error = f"Error: {e}"
+            error = f"Error in func hook(): {e}"
             print(error)
             return error
 
@@ -87,3 +96,4 @@ async def root():
 if __name__ == "__main__":
     asyncio.run(send_hook())
     print("Main program continues executing...")
+
