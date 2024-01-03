@@ -81,7 +81,7 @@ async def send_hook():
                 response = requests.post(urls, headers=headers, data=payload)
                 response_json = response.json()
                 # call_api_table(response_json["access_token"], url)
-                await asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
+                asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
             except requests.RequestException as e:
                 error = f"Error in func hook(): {e}"
                 print(error)
