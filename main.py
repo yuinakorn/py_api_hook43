@@ -58,34 +58,41 @@ async def send_hook():
     # import json file
     items = {}
     i = 0
-    with open("connection.json", "r") as file:
-        json_data = json.load(file)
+    try:
+        with open("connection.json", "r") as file:
 
-    for item in json_data:
-        i += 1
-        urli = "url" + str(i)
-        url = item['url'] + f":{item['port']}"
-        urls = item['url'] + f":{item['port']}/token"
-        username = item['username']
-        password = item['password']
-        name = item['name']
-        payload = f'username={username}&password={password}'
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        try:
-            response = requests.post(urls, headers=headers, data=payload)
-            response_json = response.json()
-            # call_api_table(response_json["access_token"], url)
-            asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
-        except requests.RequestException as e:
-            error = f"Error in func hook(): {e}"
-            print(error)
-            return error
+            json_data = json.load(file)
 
-        items[urli] = url
+        for item in json_data:
+            i += 1
+            urli = "url" + str(i)
+            url = item['url'] + f":{item['port']}"
+            urls = item['url'] + f":{item['port']}/token"
+            username = item['username']
+            password = item['password']
+            name = item['name']
+            payload = f'username={username}&password={password}'
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            try:
+                response = requests.post(urls, headers=headers, data=payload)
+                response_json = response.json()
+                # call_api_table(response_json["access_token"], url)
+                asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
+            except requests.RequestException as e:
+                error = f"Error in func hook(): {e}"
+                print(error)
+                return error
 
-    return {"urls": items, "status": "success", "message": "an api is running in background"}
+            items[urli] = url
+
+        return {"urls": items, "status": "success", "message": "an api is running in background"}
+
+    except requests.RequestException as e:
+        error = f"Error in try func hook(): {e}"
+        print(error)
+        return error
 
 
 @app.get("/")
