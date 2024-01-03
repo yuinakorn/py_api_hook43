@@ -59,7 +59,9 @@ async def send_hook():
     items = {}
     i = 0
     try:
+        print("Start hook")
         with open("connection.json", "r") as file:
+            print("Read connection.json")
 
             json_data = json.load(file)
 
@@ -79,7 +81,7 @@ async def send_hook():
                 response = requests.post(urls, headers=headers, data=payload)
                 response_json = response.json()
                 # call_api_table(response_json["access_token"], url)
-                asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
+                await asyncio.create_task(call_api_table_async(response_json["access_token"], url, name))
             except requests.RequestException as e:
                 error = f"Error in func hook(): {e}"
                 print(error)
