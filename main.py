@@ -22,33 +22,62 @@ async def call_api_table_async(token: str, url: str, name: str):
 
     try:
         with open("tables.json", "r") as file:
-            list_table = json.load(file)
+            try:
+                list_table = json.load(file)
+            except json.JSONDecodeError as json_error:
+                error = f"Error decoding JSON: {json_error}"
+                print(error)
+                # Handle the error or return, depending on your requirements
+                raise
+
             for table in list_table:
                 print(table)
                 urls = f"{url}/items/{table}"
                 print(urls)
 
-                response = requests.request("POST", urls, headers={'Authorization': f'Bearer {token}'}, data={})
+                try:
+                    response = requests.request("POST", urls, headers={'Authorization': f'Bearer {token}'}, data={})
+                    response.raise_for_status()
+                except requests.RequestException as request_error:
+                    error = f"Error making request: {request_error}"
+                    print(error)
+                    # Handle the error or return, depending on your requirements
+                    raise
+
+                # Check if the response contains valid JSON before trying to parse it
+                try:
+                    response_json = response.json()
+                except json.JSONDecodeError:
+                    error = "Error decoding response JSON. Response may not be valid JSON or empty."
+                    print(error)
+                    response_json = None  # Set to None or handle accordingly
 
                 res_data = {
                     "hcode": name,
                     "table": table,
                     "method": "replace",
-                    "data": response.json()
+                    "data": response_json  # Use the parsed JSON, or None if decoding error
                 }
-                # print get data
-                # print(res_data)
 
-                # forwarding data to api receiver
                 fw_payload = json.dumps(res_data)
                 fw_url = config_env['SEND_CLEFT_CMU']
-                response = requests.request("POST", fw_url, headers={'Content-Type': 'application/json'}, data=fw_payload)
+
+                try:
+                    response = requests.request("POST", fw_url, headers={'Content-Type': 'application/json'},
+                                                data=fw_payload)
+                    response.raise_for_status()
+                except requests.RequestException as request_error:
+                    error = f"Error making forwarding request: {request_error}"
+                    print(error)
+                    # Handle the error or return, depending on your requirements
+                    raise
 
                 print(response.text)
-    except requests.RequestException as e:
-        error = f"Error: {e}"
-        print(error)
-        return error
+
+    except FileNotFoundError:
+        print("File 'tables.json' not found.")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
 
     print("End at: " + thai_time.strftime('%Y-%m-%d %H:%M:%S'))
 
@@ -105,4 +134,3 @@ async def root():
 if __name__ == "__main__":
     asyncio.run(send_hook())
     print("Main program continues executing...")
-
